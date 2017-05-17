@@ -36,7 +36,12 @@ class Order
         {
             echo $id.',';
         }
-        echo'<br>';
+        echo'<br>
+        
+        
+        
+        
+        ';
     }
 }
 ?>

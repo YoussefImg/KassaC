@@ -1,5 +1,6 @@
 <?php
 include "UserClass.php";
+
 require_once('ripcord-master/ripcord.php');
 
 
@@ -24,19 +25,23 @@ $models = ripcord::client("$url/xmlrpc/2/object");
         /*Database table*/       'res.partner',
         /*Action on table*/      'search_read',
         array(array(array('active', '=', true))),
-        array('fields'=>array('id','name', 'email', 'street','phone','mobile','city','create_date','x_UUID')));
-    
-   foreach($records as $user)
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version")));
+ 
+   foreach($records as  $list)
     {
        
-        $list = new User($user["id"],$user["name"],$user["email"],$user["street"],$user["phone"],$user["mobile"],$user["create_date"],0,$user["city"]);
-        $list->UUID = $user["x_UUID"];
-        $list->toString();
+        $user = new User( $list["id"], $list["name"], $list["email"], $list["street"],$list["x_state"],$list["city"],$list["x_country"],$list["zip"], $list["phone"]);
+        $user->credit = $list["credit"];
+        $user->UUID = $list["x_UUID"];
+        $user->version = $list["x_version"];
+        $user->createDate = $list["create_date"];
+        $user->toString();
+        
         
     }
 }
 
- function readCustomer($id)
+ function readCustomerById($id)
 {
     // @TODO change to uuid
     global $url;
@@ -50,18 +55,24 @@ $models = ripcord::client("$url/xmlrpc/2/object");
         /*Database table*/       'res.partner',
         /*Action on table*/      'search_read',
         array(array(array('id', '=', $id))),
-        array('fields'=>array('id','name', 'email', 'street','phone','mobile','city','create_date'), 'limit'=>5));
-    
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version"), 'limit'=>5));
+    var_dump($records);
+    if(count($records) == 0)
+    {
+        return false;
+    }
    foreach($records as $list)
     {
-       
-        $user= new User($user["id"],$user["name"],$user["email"],$user["street"],$user["phone"],$user["mobile"],$user["create_date"],0,$user["city"]);
+        $user = new User($list["id"], $list["name"], $list["email"], $list["street"],$list["x_state"],$list["city"],$list["x_country"],$list["zip"], $list["phone"]);
+        $user->credit = $list["credit"];
+        $user->version = $list["x_version"];
         $user->UUID = $list["x_UUID"];
-        $user->toString();
+        $user->createDate = $list["create_date"];
         
+        return $user;
     }
 }
- function SetInactiveCustomer($id)
+ function readCustomerByUUID($UUID)
 {
     // @TODO change to uuid
     global $url;
@@ -71,13 +82,42 @@ $models = ripcord::client("$url/xmlrpc/2/object");
     global $common;
     global $uid;
     global $models;
+    $records = $models->execute_kw($db, $uid, $password,
+        /*Database table*/       'res.partner',
+        /*Action on table*/      'search_read',
+        array(array(array('x_UUID', '=', $UUID))),
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version"), 'limit'=>5));
+    
+   foreach($records as $list)
+    {
+       
+         $user = new User( $list["id"], $list["name"], $list["email"], $list["street"],$list["x_state"],$list["city"],$list["x_country"],$list["zip"], $list["phone"]);
+        $user->credit = $list["credit"];
+        $user->version = $list["x_version"];
+        $user->UUID = $list["x_UUID"];
+        $user->createDate = $list["create_date"];
+        
+        return $user;
+    }
+}
+ function SetInactiveCustomer($UUID)
+{
+    // @TODO change to uuid
+    global $url;
+    global $db;
+    global $username;
+    global $password;
+    global $common;
+    global $uid;
+    global $models;
+    $id =SearchCustomerIdByUUID($UUID);
     $models->execute_kw($db, $uid, $password, 'res.partner', 'write',
         array(array($id), array('active'=> FALSE)));
   
 }
 
 
-function CreateCustomer($Customer)
+function CreateCustomerWithoutUUID($Customer)
 {
     // @TODO change to uuid
     global $url;
@@ -93,55 +133,36 @@ function CreateCustomer($Customer)
     $im = file_get_contents('lion.jpg');
     $imdata = base64_encode($im);
 */
-    $urlUUID = '10.3.51.41/api/v1/uuid';
-    $params = array(
-
-        'login'=> 'kassa',
-        'password' => "bef01fae58ed6470ebd052da18b25077",
-        'uniq'=> 'Marwan',
-        'kind'=> 'VST'
-   
-    );
-    $json =json_encode($params);
-    $ch = curl_init( $urlUUID);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($json)));
-    curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
-    curl_setopt($ch,CURLOPT_CUSTOMREQUEST,"PUT");
-    curl_setopt($ch,CURLOPT_POSTFIELDS,$json);
-
-    $response = curl_exec($ch);
-    $response = json_decode($response,true);
-    $Customer->UUID = $response["StatusMessage"]["UUID"];
-    echo $Customer->UUID;
+    $masterinfo = getMasterUUID($Customer->email);
+    $Customer->UUID = $masterinfo["UUID"] ;
+    $Customer->version = $masterinfo["version"] ;
     
-    $userinfo = array('name' => $Customer->name,
-        'mobile' => $Customer->mobile,
+    
+    $userinfo = array(
+         'name' => $Customer->name,
         'email' => $Customer->email,
         'phone' => $Customer->phone,
         'street' => $Customer->street,
-        'city' => $Customer->city,
+        'x_state' => $Customer->state,
+        'x_country' => $Customer->street,
+        'zip' => $Customer->street,
+        'city' => $Customer->street,
         'create_date' => $Customer->createDate,
         'x_UUID'=> $Customer->UUID,
+        'credit'=> $Customer->credit,
+        'x_version' =>$Customer->version,
+        'barcode'=> $Customer->bar,
         );
     
     // Product creation
     $customer_id = $models->execute_kw($db, $uid, $password, 'res.partner', 'create',
         array($userinfo));
+    $Customer->id = $customer_id;
+    echo $customer_id;
+    return $Customer;
    
 }
-function BlokkeerCustomer($id)
-{
-    // @TODO change to uuid
-    global $url;
-    global $db;
-    global $username;
-    global $password;
-    global $common;
-    global $uid;
-    global $models;
-    // blokeren niet op inactief zetten?
-}
-function UpdateCustomer($id, $Customer)
+function CreateCustomerWithUUID($Customer)
 {
     // @TODO change to uuid
     global $url;
@@ -152,17 +173,106 @@ function UpdateCustomer($id, $Customer)
     global $uid;
     global $models;
     
+    
+/*  For an image => here
+    $im = file_get_contents('lion.jpg');
+    $imdata = base64_encode($im);
+*/
+    
+    
+    
+    $userinfo = array(
+        'name' => $Customer->name,
+        'email' => $Customer->email,
+        'phone' => $Customer->phone,
+        'street' => $Customer->street,
+        'x_state' => $Customer->state,
+        'x_country' => $Customer->street,
+        'zip' => $Customer->street,
+        'city' => $Customer->street,
+        'create_date' => $Customer->createDate,
+        'x_UUID'=> $Customer->UUID,
+        'credit'=> $Customer->credit,
+        'x_version' =>$Customer->version,
+        'barcode'=> $Customer->bar,
+        );
+    
+    // Product creation
+    $customer_id = $models->execute_kw($db, $uid, $password, 'res.partner', 'create',
+        array($userinfo));
+    $Customer->id = $customer_id;
+    return $Customer;
+   
+}
+function UpdateCustomer($Customer)
+
+{
+    // @TODO change to uuid
+    global $url;
+    global $db;
+    global $username;
+    global $password;
+    global $common;
+    global $uid;
+    global $models;
+    $id = SearchCustomerIdByUUID($Customer->$UUID);
+    $userinfo = array(
+        'name' => $Customer->name,
+        'email' => $Customer->email,
+        'phone' => $Customer->phone,
+        'street' => $Customer->street,
+        'x_state' => $Customer->state,
+        'x_country' => $Customer->street,
+        'zip' => $Customer->street,
+        'city' => $Customer->street,
+        'x_UUID'=> $Customer->UUID,
+        'x_version' =>$Customer->version,
+        );
     //IF WORKS WITH UUID,MUST FETCH FIRST TO GET ID
     $models->execute_kw($db, $uid, $password, 'res.partner', 'write',
-        array(array($id),   array('name'=>$Customer->name,
-                                  'mobile'=>$Customer->mobile,
-                                  'phone'=>$Customer->phone,
-                                  'street'=>$Customer->street,
-                                  'email'=>$Customer->email)));
+        array(array($id),  $userinfo)));
+
+}
+function UpdateCustomerCreditPositif($UUID, $credit)
+{
+   // Recieve the uuid of customer and credit to add to the current credit
+    global $url;
+    global $db;
+    global $username;
+    global $password;
+    global $common;
+    global $uid;
+    global $models;
+    
+    $id =SearchCustomerIdByUUID($UUID);
+    $cred = getCustomerCreditByUUID($UUID);
+    $cred = $cred + $credit;
+    
+    
+    $models->execute_kw($db, $uid, $password, 'res.partner', 'write',
+        array(array($id),   array('credit'=>$cred)));
    
    
 }
-function SearchCustomerId($Customer)
+function UpdateCustomerCreditNegatif($id, $credit)
+{
+    // Recieve an id of customer and a new credit to set , calculation made elsewhere
+    global $url;
+    global $db;
+    global $username;
+    global $password;
+    global $common;
+    global $uid;
+    global $models;
+    
+    
+    
+    $models->execute_kw($db, $uid, $password, 'res.partner', 'write',
+        array(array($id),   array('credit'=>$credit)));
+   
+   
+}
+function getCustomerCreditByUUID($UUID)
 {
     // @TODO change to uuid
     global $url;
@@ -176,23 +286,108 @@ function SearchCustomerId($Customer)
     $records = $models->execute_kw($db, $uid, $password,
         /*Database table*/       'res.partner',
         /*Action on table*/      'search_read',
-        array(array(array('name', '=', $Customer->name),
-                    array('email', '=', $Customer->email),
-                    array('street', '=', $Customer->street),
-                    array('phone', '=', $Customer->phone),
-                    array('mobile', '=', $Customer->mobile))),
+        array(array(array('x_UUID', '=', $UUID))),
+        array('fields'=>array('credit')));
+    
+   foreach($records as $user)
+    {
+       
+        echo $user["credit"];        
+    }
+   return $user["credit"];
+}
+function getCustomerCreditByID($id)
+{
+    // @TODO change to uuid
+    global $url;
+    global $db;
+    global $username;
+    global $password;
+    global $common;
+    global $uid;
+    global $models;
+    
+    $records = $models->execute_kw($db, $uid, $password,
+        /*Database table*/       'res.partner',
+        /*Action on table*/      'search_read',
+        array(array(array('id', '=', $id))),
+        array('fields'=>array('credit')));
+    
+   foreach($records as $user)
+    {
+       
+        echo $user["credit"];        
+    }
+   return $user["credit"];
+}
+
+function SearchCustomerIdByUUID($UUID)
+{
+    // @TODO change to uuid
+    global $url;
+    global $db;
+    global $username;
+    global $password;
+    global $common;
+    global $uid;
+    global $models;
+    
+    $records = $models->execute_kw($db, $uid, $password,
+        /*Database table*/       'res.partner',
+        /*Action on table*/      'search_read',
+        array(array(array('x_UUID', '=', $UUID))),
         array('fields'=>array('id')));
     
    foreach($records as $user)
     {
-       //UUID OF ID
+       
         echo $user["id"];        
     }
-   
+   return $user["id"];
 }
 
 
+function getMasterUUID($email)
+{
+    $urlUUID = '10.3.51.41/api/v1/uuid';
+    $params = array(
 
+        'login'=> 'kassa',
+        'password' => "bef01fae58ed6470ebd052da18b25077",
+        'uniq'=> $email,
+        'kind'=> 'VST'
+   
+    );
+    $json =json_encode($params);
+    $ch = curl_init( $urlUUID);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($json)));
+    curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
+    curl_setopt($ch,CURLOPT_CUSTOMREQUEST,"POST");
+    curl_setopt($ch,CURLOPT_POSTFIELDS,$json);
+
+    $response = curl_exec($ch);
+    $response = json_decode($response,true);
+    $masterinfo = array( 'UUID'=>$response["StatusMessage"]["UUID"],
+                    'version'=> $response["StatusMessage"]["Version"]);
+    return $masterinfo;
+}
+function UpdateCustomerUUID($id,$UUID,$version)
+{
+    // THIS FUNCTION IS ONLY USED WHEN CUSTOMERS ARE MADE IN THE GUI DO NOT USE ELSEWHERE
+    global $url;
+    global $db;
+    global $username;
+    global $password;
+    global $common;
+    global $uid;
+    global $models;
+   
+    //IF WORKS WITH UUID,MUST FETCH FIRST TO GET ID
+    $models->execute_kw($db, $uid, $password, 'res.partner', 'write',
+        array(array($id),   array('x_UUID'=>$UUID
+                                 ,'x_version'=>$version
+                                 ,'barcode'=>1)));
+}
 function deadtest()
 {
     $user = new User("testchange","testchange@gmail.com","testchangeland",33333333,1444444);
