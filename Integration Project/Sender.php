@@ -22,6 +22,20 @@ function sendCRM($Customer)
                         'password' => "ekahov3");//$response = array();
     
     $arrayBody =array(
+        "uuid" => $Customer->UUID,
+        "version" =>$Customer->version,
+        "name" => $Customer->name,
+        "surname" => "",
+        "tel" => $Customer->phone,
+        "email" => $Customer->email,
+        "street" => $Customer->street,
+        "city" => $Customer->city,
+        "zip" => $Customer->zip,
+        "state"=> $Customer->state,
+        "country" => $Customer->country,
+        "breakfast" => NULL,
+        "cable" => NULL,
+        "fraude" => NULL
     );
     $JSON = array(
         "Type" => "Request",
@@ -43,10 +57,24 @@ function sendCreateUserCRM($Customer)
     global $connection;
     global $channel;
     
-    $arrayCred = array( 'login' => "admin",
-                        'password' => "ekahov3");//$response = array();
+    $arrayCred = array( 'login' => "kassa",
+                        'password' => md5("S2DnPgVM"));//$response = array();
     
     $arrayBody =array(
+        "uuid" => $Customer->UUID,
+        "version" =>$Customer->version,
+        "name" => strtok($Customer->name, '_'),
+        "surname" => substr($Customer->name, strpos($Customer->name, "_") + 1),
+        "tel" => $Customer->phone,
+        "email" => $Customer->email,
+        "street" => $Customer->street,
+        "city" => $Customer->city,
+        "zip" => $Customer->zip,
+        "state"=> $Customer->state,
+        "country" => $Customer->country,
+        "breakfast" => NULL,
+        "cable" => NULL,
+        "fraude" => NULL
     );
     $JSON = array(
         "Type" => "Request",
@@ -58,11 +86,11 @@ function sendCreateUserCRM($Customer)
         'Body' => $arrayBody);
   
     $msg = new AMQPMessage(json_encode($JSON));
-    $channel->basic_publish($msg, '', 'Kassa');
+    $channel->basic_publish($msg, '', 'CRMQueue');
 
 
 }
-function sendMONITORING($Customer)
+function sendMONITORINGLog($Customer)
 {
 
     global $connection;
@@ -72,6 +100,20 @@ function sendMONITORING($Customer)
                         'password' => "ekahov3");//$response = array();
     
     $arrayBody =array(
+        "uuid" => $Customer->UUID,
+        "version" =>$Customer->version,
+        "name" => strtok($Customer->name, '_'),
+        "surname" => substr($Customer->name, strpos($Customer->name, "_") + 1),
+        "tel" => $Customer->phone,
+        "email" => $Customer->email,
+        "street" => $Customer->street,
+        "city" => $Customer->city,
+        "zip" => $Customer->zip,
+        "state"=> $Customer->state,
+        "country" => $Customer->country,
+        "breakfast" => NULL,
+        "cable" => NULL,
+        "fraude" => NULL
     );
     $JSON = array(
         "Type" => "Request",
@@ -83,7 +125,7 @@ function sendMONITORING($Customer)
         'Body' => $arrayBody);
     
     $msg = new AMQPMessage(json_encode($JSON));
-    $channel->basic_publish($msg, '', 'ControlRoom');
+    $channel->basic_publish($msg, '', 'MonitoringLogQueue');
 
 
 }
@@ -109,10 +151,7 @@ function sendPLANNING($JSON)
 
 
 }
-/*
- $user= new User("1","daoud","Daoud@gmail.com","my street",035234234,32423562,(new \DateTime())->format('Y-m-d H:i:s'),0,"brussel");
-sendMONITORING($user);
-*/
+
 
 
 
@@ -157,9 +196,14 @@ function sendKassa($Customer)
 
 
 }
-
+/*
+ $user= new User("1","daoud","Daoud@gmail.com","my street",035234234,32423562,(new \DateTime())->format('Y-m-d H:i:s'),0,"brussel");
+sendMONITORING($user);
+*/
+/*
    $user = new User( null, "zedtest", "update@up", "upp","upstate","upcity","upcountry",2344, 0234234);
 sendKassa($user);
+*/
 $channel->close();
 $connection->close();
 

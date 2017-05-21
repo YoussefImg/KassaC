@@ -1,6 +1,5 @@
 <?php
-include"UserDAO.php";
-include "OrderDAO.php";
+include "Sender.php";
 
 
 require_once __DIR__ . '/vendor/autoload.php';
@@ -17,10 +16,10 @@ echo ' [*] Waiting for messages. To exit press CTRL+C', "\n";
 $callback = function($msg) 
 {
     $json = json_decode($msg->body,true);
-    if($json["Reciever"] == "KAS")
+    if($json["Receiver"] == "KAS")
     {
         $name = $json["Body"]["name"];
-        $name .= $json["Body"]["surname"];
+        $name .= '_'.$json["Body"]["surname"];
         $email =  $json["Body"]["email"];
         $street =  $json["Body"]["street"];
         $phone = $json["Body"]["tel"];
@@ -31,50 +30,68 @@ $callback = function($msg)
         
         if($json["Method"] == "POST")
         {
-
-            $user = new User(  null,$name,$email,$street,$state,$city,$country,$zip,$phone);
-            $user->credit = 0;
-            if($json["Sender"] == "FRE")
+            if (readCustomerByEmail($email) == NULL)
             {
-                $user->bar = 0;
+                $user = new User(  null,$name,$email,$street,$state,$city,$country,$zip,$phone);
+                $user->credit = 0;
+                if($json["Sender"] == "FRE")
+                {
+                    $user->bar = 0;
+                } 
+                else
+                {
+                    $user->bar = 1;
+                }
                 if(!isset($json["Body"]["id"]) || !isset($json["Body"]["uuid"]))
                 {
 
-                    echo 'no id';
-                    $user = CreateCustomerWithoutUUID($user);
-                    if($user->id > 0)
-                    {
-                        //sendCRM($user);
-                    };
+                        echo 'no id';
+                        $user = CreateCustomerWithoutUUID($user);
+                        /*
+                        if($user->id > 0)
+                        {
+                           print_r($user);
+                            sendCreateUserCRM($user);
+                            sendMONITORINGLog($user);
+                        };
+                        */
                 }
                 else
                 {
-                   echo"id";
-                    if(!isset($json["Body"]["id"]))
-                    {
-                        $user->UUID = $json["Body"]["id"];
-                    }
-                    else
-                    {
-                        $user->UUID = $json["Body"]["uuid"];
-                    }
-                    $version =$json["Body"]["version"];
-                    $user->version = $version;
-                    $user = CreateCustomerWithUUID($user);
-
-                    if($user->id > 0)
-                    {
-                        sendCRM($user);
-                    };
+                       echo"id";
+                        if(!isset($json["Body"]["id"]))
+                        {
+                            $user->UUID = $json["Body"]["id"];
+                        }
+                        else
+                        {
+                            $user->UUID = $json["Body"]["uuid"];
+                        }
+                        $version =$json["Body"]["version"];
+                        $user->version = $version;
+                        $user = CreateCustomerWithUUID($user);
+                        /*
+                        if($user->id > 0)
+                        {
+                            print_r($user);
+                            sendCreateUserCRM($user);
+                            sendMONITORINGLog($user);
+                        };
+                        */
                 }
-
             }
+            else
+            {
+                //ACCOUNTN ALREADY EXIST
+            }
+            
         }
         if($json["Method"] == "PUT")
         {
+            
+            $user = new User(  null,$name,$email,$street,$state,$city,$country,$zip,$phone);
             $user->version = $json["Body"]["version"];
             $user->UUID = $json["Body"]["uuid"];
-            $user = new User(  null,$name,$email,$street,$state,$city,$country,$zip,$phone);
             UpdateCustomer($user);
 
         }
@@ -100,20 +117,13 @@ $callback = function($msg)
     
 };
 
-$channel->basic_consume('Kassa', '', false, true, false, false, $callback);
 
-while(true)
-{
-    sendOrdersFromPointOfSale();
-    sleep(5);
-}
-while(count($channel->callbacks)) {
-    $channel->wait();
-}
+
+
 
 //TIMERS
 $lastOrderID= 1;
-$lastCustomerID = 105;
+$lastCustomerID = 106;
 function sendOrdersFromPointOfSale()
 {
    global $lastOrderID;
@@ -142,25 +152,61 @@ function sendOrdersFromPointOfSale()
     
    
 }
+$RegistredIDs = array();
+function sendRegistredUsers()
+{
+   global $lastOrderID;
+    
+    $response =  readOrder($lastOrderID);
+    foreach($response as  $list)
+    {
+       
+        
+        if (!in_array($list["id"], $RegistredIDs)) 
+        {
+            array_push($RegistredIDs, $list["id"]);
+            
+            $user = new User($list["id"], $list["name"], $list["email"], $list["street"],$list["x_state"],$list["city"],$list["x_country"],$list["zip"], $list["phone"]);
+            $user->credit = $list["credit"];
+            $user->version = $list["x_version"];
+            $user->UUID = $list["x_UUID"];
+            $user->createDate = $list["create_date"];
+            $user->bar = $list["barcode"];
+            
+            //SEND TO MONITORING USER IS THERE
+        }   
+        
+        
+        
+    }
+    
+    
+   
+}
 function sendNewCustomers()
 {
    global $lastCustomerID;
     do
     {
+        
        $response =  readCustomerById($lastCustomerID);
         if($response != false)
         {
             
-             
+            $response->toString();
             if($response->UUID == false)
             {
+                /**/
                 $master = getMasterUUID($response->email);
                 $UUID = $master["UUID"];
                 $version = $master["version"];
                 UpdateCustomerUUID($lastCustomerID, $UUID,$version);
                 $response->UUID = $UUID;
                 $response->version = $version;
-                //sendCRM($response);
+                $response->toString();
+                sendCreateUserCRM($response);
+                sendMONITORINGLog($response);
+                
             }
            
            $lastCustomerID++; 
@@ -171,8 +217,22 @@ function sendNewCustomers()
    
 }
 
+/*
+while(true)
+{
+    
+    sendNewCustomers();
+    sleep(5);
+}
 
+*/
 
+$channel->basic_consume('KassaQueue', '', false, true, false, false, $callback);
+while(count($channel->callbacks)) {
+    $channel->wait();
+}
+/*
+*/
 
 ?>
 

@@ -25,7 +25,7 @@ $models = ripcord::client("$url/xmlrpc/2/object");
         /*Database table*/       'res.partner',
         /*Action on table*/      'search_read',
         array(array(array('active', '=', true))),
-        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version")));
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'barcode')));
  
    foreach($records as  $list)
     {
@@ -35,10 +35,30 @@ $models = ripcord::client("$url/xmlrpc/2/object");
         $user->UUID = $list["x_UUID"];
         $user->version = $list["x_version"];
         $user->createDate = $list["create_date"];
+        $user->bar = $list["barcode"];
         $user->toString();
         
         
     }
+}
+function readRegistredCustomers()
+{
+    //GIVES ALL USERS THAT ARE REGISTRED AT THE ...
+    global $url;
+    global $db;
+    global $username;
+    global $password;
+    global $common;
+    global $uid;
+    global $models;
+    $records = $models->execute_kw($db, $uid, $password,
+        /*Database table*/       'res.partner',
+        /*Action on table*/      'search_read',
+        array(array(array('active', '=', true),
+                   array('barcode', '=', 1))),
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'barcode')));
+ 
+  return $records;
 }
 
  function readCustomerById($id)
@@ -55,8 +75,8 @@ $models = ripcord::client("$url/xmlrpc/2/object");
         /*Database table*/       'res.partner',
         /*Action on table*/      'search_read',
         array(array(array('id', '=', $id))),
-        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version"), 'limit'=>5));
-    var_dump($records);
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'barcode'), 'limit'=>1));
+    
     if(count($records) == 0)
     {
         return false;
@@ -68,7 +88,7 @@ $models = ripcord::client("$url/xmlrpc/2/object");
         $user->version = $list["x_version"];
         $user->UUID = $list["x_UUID"];
         $user->createDate = $list["create_date"];
-        
+         $user->bar = $list["barcode"];
         return $user;
     }
 }
@@ -86,7 +106,7 @@ $models = ripcord::client("$url/xmlrpc/2/object");
         /*Database table*/       'res.partner',
         /*Action on table*/      'search_read',
         array(array(array('x_UUID', '=', $UUID))),
-        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version"), 'limit'=>5));
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'barcode'), 'limit'=>5));
     
    foreach($records as $list)
     {
@@ -96,7 +116,35 @@ $models = ripcord::client("$url/xmlrpc/2/object");
         $user->version = $list["x_version"];
         $user->UUID = $list["x_UUID"];
         $user->createDate = $list["create_date"];
-        
+         $user->bar = $list["barcode"];
+        return $user;
+    }
+}
+function readCustomerByEmail($email)
+{
+    // @TODO change to uuid
+    global $url;
+    global $db;
+    global $username;
+    global $password;
+    global $common;
+    global $uid;
+    global $models;
+    $records = $models->execute_kw($db, $uid, $password,
+        /*Database table*/       'res.partner',
+        /*Action on table*/      'search_read',
+        array(array(array('email', '=', $email))),
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'barcode'), 'limit'=>5));
+    
+   foreach($records as $list)
+    {
+       
+         $user = new User( $list["id"], $list["name"], $list["email"], $list["street"],$list["x_state"],$list["city"],$list["x_country"],$list["zip"], $list["phone"]);
+        $user->credit = $list["credit"];
+        $user->version = $list["x_version"];
+        $user->UUID = $list["x_UUID"];
+        $user->createDate = $list["create_date"];
+         $user->bar = $list["barcode"];
         return $user;
     }
 }
@@ -230,7 +278,7 @@ function UpdateCustomer($Customer)
         );
     //IF WORKS WITH UUID,MUST FETCH FIRST TO GET ID
     $models->execute_kw($db, $uid, $password, 'res.partner', 'write',
-        array(array($id),  $userinfo)));
+        array(array($id),  $userinfo));
 
 }
 function UpdateCustomerCreditPositif($UUID, $credit)
@@ -316,9 +364,10 @@ function getCustomerCreditByID($id)
    foreach($records as $user)
     {
        
-        echo $user["credit"];        
+        echo $user["credit"];
+        return $user["credit"];
     }
-   return $user["credit"];
+   
 }
 
 function SearchCustomerIdByUUID($UUID)
@@ -362,11 +411,12 @@ function getMasterUUID($email)
     $ch = curl_init( $urlUUID);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($json)));
     curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
-    curl_setopt($ch,CURLOPT_CUSTOMREQUEST,"POST");
+    curl_setopt($ch,CURLOPT_CUSTOMREQUEST,"PUT");
     curl_setopt($ch,CURLOPT_POSTFIELDS,$json);
 
     $response = curl_exec($ch);
     $response = json_decode($response,true);
+   
     $masterinfo = array( 'UUID'=>$response["StatusMessage"]["UUID"],
                     'version'=> $response["StatusMessage"]["Version"]);
     return $masterinfo;
