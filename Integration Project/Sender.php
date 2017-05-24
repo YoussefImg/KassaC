@@ -129,6 +129,58 @@ function sendMONITORINGLog($Customer)
 
 
 }
+function sendMONITORINGOrders($body)
+{
+   
+    global $connection;
+    global $channel;
+    $channel->queue_declare('MonitoringLogQueue', true, false, false, false);
+    $arrayCred = array( 'login' => "kassa",
+                        'password' => md5("S2DnPgVM"));//$response = array();
+    
+    
+    $JSON = array(
+        "Type" => "Request",
+        "Method" => "POST",
+        "Sender" => "KAS",
+        "Receiver" => "MON",
+        "ObjectType" => "ORD",
+        'Credentials' => $arrayCred, 
+        'Body' => $body);
+    
+    $msg = new AMQPMessage(json_encode($JSON));
+    $channel->basic_publish($msg, '', 'MonitoringLogQueue');
+
+
+}
+function sendMONITORINGRegistred($uuid)
+{
+
+    global $connection;
+    global $channel;
+   
+    $arrayCred = array( 'login' => "kassa",
+                        'password' => md5("S2DnPgVM"));//$response = array();
+    
+     $arrayBody =array(
+         "uuid" => $uuid,
+         "time" =>(new \DateTime())->format('Y-m-d H:i:s')
+       
+    );
+    $JSON = array(
+        "Type" => "Request",
+        "Method" => "POST",
+        "Sender" => "KAS",
+        "Receiver" => "MON",
+        "ObjectType" => "REG",
+        'Credentials' => $arrayCred, 
+        'Body' => $arrayBody);
+    
+    $msg = new AMQPMessage(json_encode($JSON));
+    $channel->basic_publish($msg, '', 'MonitoringLogQueue');
+
+
+}
 function sendFRONTEND($JSON)
 {
 

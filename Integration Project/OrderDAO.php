@@ -1,5 +1,6 @@
 <?php 
 include "OrderClass.php";
+
 require_once('ripcord-master/ripcord.php');
 
 
@@ -49,7 +50,7 @@ function readOrder($id)
         /*Database table*/       'pos.order',
         /*Action on table*/      'search_read',
         array(array(array('id', '=', $id))),
-        array('fields'=>array('id', 'name', 'date_order','partner_id','amount_total','lines')));
+        array('fields'=>array('id',  'date_order','partner_id','amount_total','lines')));
     
     if(count($records) == 0)
     {
@@ -58,9 +59,9 @@ function readOrder($id)
    
    foreach($records as $list)
     {
-       
-        $order = new Order($list["id"],$list["name"],$list["partner_id"]["0"],$list["amount_total"],$list["date_order"],$list["lines"]);
-        $order->toString();
+     
+        $order = new Order($list["id"],$list["partner_id"][1],$list["partner_id"][0],$list["amount_total"],$list["date_order"],$list["lines"]);
+        
         
         return $order;
         
@@ -68,7 +69,30 @@ function readOrder($id)
     
     
 }
-
+function readOrderdetail($id)
+{
+    global $url;
+    global $db;
+    global $username;
+    global $password;
+    global $common;
+    global $uid;
+    global $models;
+    $records = $models->execute_kw($db, $uid, $password,
+        /*Database table*/       'pos.order.line',
+        /*Action on table*/      'search_read',
+        array(array(array('id', '=', $id))),
+        array('fields'=>array('id', 'price_unit', 'qty')));
+    
+    if(count($records) == 0)
+    {
+        return false;
+    }
+   
+   return $records;
+    
+    
+}
 function readOrderBetween($startDate, $endDate)
 {
     global $url;

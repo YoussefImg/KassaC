@@ -132,7 +132,7 @@ function sendOrdersFromPointOfSale()
        $response =  readOrder($lastOrderID);
         if($response != false)
         {
-             $lastOrderID++ ;
+             /*
             $total = $response->total;
             $credit = getCustomerCreditByID($response->customerID);
             if($credit - $total < 0)
@@ -144,9 +144,26 @@ function sendOrdersFromPointOfSale()
                 $newcredit = $credit - $total;
                 UpdateCustomerCreditNegatif($response->customerID, $newcredit);
             }
+            */
+            $detaillines = array();
+            foreach($response->productIDs as $id)
+            {
+                $detail = readOrderdetail($id);
+                
+                $detailline = array("id" => $detail[0]["id"],"price" => $detail[0]["price_unit"],"quantity" =>$detail[0]["qty"]) ;
+                array_push($detaillines, $detailline);
+            }
             
+            $arrayBody =array(
+            "uuid" => (string)$response->id,
+            "name" =>$response->name,
+            "productlines"=>$detaillines
+            );
+            
+            sendMONITORINGOrders($arrayBody);
+            
+            $lastOrderID++ ;
         }
-       
     }while ($response != false );
     
     
@@ -155,9 +172,9 @@ function sendOrdersFromPointOfSale()
 $RegistredIDs = array();
 function sendRegistredUsers()
 {
-   global $lastOrderID;
+   global $RegistredIDs;
     
-    $response =  readOrder($lastOrderID);
+    $response =  readRegistredCustomers();
     foreach($response as  $list)
     {
        
@@ -165,15 +182,20 @@ function sendRegistredUsers()
         if (!in_array($list["id"], $RegistredIDs)) 
         {
             array_push($RegistredIDs, $list["id"]);
-            
+            /*
             $user = new User($list["id"], $list["name"], $list["email"], $list["street"],$list["x_state"],$list["city"],$list["x_country"],$list["zip"], $list["phone"]);
             $user->credit = $list["credit"];
             $user->version = $list["x_version"];
             $user->UUID = $list["x_UUID"];
             $user->createDate = $list["create_date"];
             $user->bar = $list["barcode"];
+            */
+            sendMONITORINGRegistred($list["x_UUID"]);
             
             //SEND TO MONITORING USER IS THERE
+            // REG
+            // UUID
+            // TIME TIMESTAMP
         }   
         
         
@@ -217,23 +239,58 @@ function sendNewCustomers()
    
 }
 
-/*
+/**/
+ //readSavedInfos();
+ //read the saved info so you dont have to reinit them
 while(true)
 {
     
-    sendNewCustomers();
-    sleep(5);
+    sendOrdersFromPointOfSale();
+    sleep(30);
 }
 
-*/
 
+/*
 $channel->basic_consume('KassaQueue', '', false, true, false, false, $callback);
 while(count($channel->callbacks)) {
     $channel->wait();
 }
-/*
-*/
 
+*/
+$relative_path = 'php/testit/info.txt';
+function readSavedInfos()
+{
+    global $relative_path;
+    global $lastCustomerID;
+    global $lastOrderID;
+    global $RegistredIDs;
+    
+    $myfile = fopen($relative_path, "r") or die("Unable to open file!");
+    $info = fread($myfile,filesize($relative_path));
+    fclose($myfile);
+    
+    $jsoninfo = json_decode($info);
+    $lastCustomerID = $jsoninfo["lastCustomerID"];
+    $lastOrderID = $jsoninfo["lastOrderID"];
+    $RegistredIDs = $jsoninfo["RegistredIDs"];
+}
+function writeSavedInfos()
+{
+    global $relative_path;
+    global $lastCustomerID;
+    global $lastOrderID;
+    global $RegistredIDs;
+    
+    $myfile = fopen($relative_path, "w") or die("Unable to open file!");
+    $info = array(  "lastCustomerID" => $lastCustomerID,
+                    "lastOrderID" => $lastOrderID,
+                    "RegistredIDs" => $RegistredIDs
+    );
+
+    fwrite($myfile, json_encode($info));
+    fclose($myfile);
+
+}
 ?>
 
 
