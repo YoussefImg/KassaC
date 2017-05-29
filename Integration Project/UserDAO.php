@@ -25,7 +25,7 @@ $models = ripcord::client("$url/xmlrpc/2/object");
         /*Database table*/       'res.partner',
         /*Action on table*/      'search_read',
         array(array(array('active', '=', true))),
-        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'barcode')));
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'x_registered')));
  
    foreach($records as  $list)
     {
@@ -35,7 +35,7 @@ $models = ripcord::client("$url/xmlrpc/2/object");
         $user->UUID = $list["x_UUID"];
         $user->version = $list["x_version"];
         $user->createDate = $list["create_date"];
-        $user->bar = $list["barcode"];
+        $user->registered = $list["x_registered"];
         $user->toString();
         
         
@@ -56,7 +56,7 @@ function readRegistredCustomers()
         /*Action on table*/      'search_read',
         array(array(array('active', '=', true),
                    array('barcode', '=', 1))),
-        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'barcode')));
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'x_registered')));
  
   return $records;
 }
@@ -75,7 +75,7 @@ function readRegistredCustomers()
         /*Database table*/       'res.partner',
         /*Action on table*/      'search_read',
         array(array(array('id', '=', $id))),
-        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'barcode'), 'limit'=>1));
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'x_registered'), 'limit'=>1));
     
     if(count($records) == 0)
     {
@@ -88,7 +88,7 @@ function readRegistredCustomers()
         $user->version = $list["x_version"];
         $user->UUID = $list["x_UUID"];
         $user->createDate = $list["create_date"];
-         $user->bar = $list["barcode"];
+         $user->registered = $list["x_registered"];
         return $user;
     }
 }
@@ -106,7 +106,7 @@ function readRegistredCustomers()
         /*Database table*/       'res.partner',
         /*Action on table*/      'search_read',
         array(array(array('x_UUID', '=', $UUID))),
-        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'barcode'), 'limit'=>5));
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'x_registered'), 'limit'=>5));
     
    foreach($records as $list)
     {
@@ -116,7 +116,7 @@ function readRegistredCustomers()
         $user->version = $list["x_version"];
         $user->UUID = $list["x_UUID"];
         $user->createDate = $list["create_date"];
-         $user->bar = $list["barcode"];
+         $user->registered = $list["x_registered"];
         return $user;
     }
 }
@@ -134,7 +134,7 @@ function readCustomerByEmail($email)
         /*Database table*/       'res.partner',
         /*Action on table*/      'search_read',
         array(array(array('email', '=', $email))),
-        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'barcode'), 'limit'=>5));
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"credit","x_version",'x_registered'), 'limit'=>5));
     
    foreach($records as $list)
     {
@@ -144,7 +144,7 @@ function readCustomerByEmail($email)
         $user->version = $list["x_version"];
         $user->UUID = $list["x_UUID"];
         $user->createDate = $list["create_date"];
-         $user->bar = $list["barcode"];
+         $user->registered = $list["x_registered"];
         return $user;
     }
 }
@@ -199,12 +199,11 @@ function CreateCustomerWithoutUUID($Customer)
         'x_UUID'=> $Customer->UUID,
         'credit'=> $Customer->credit,
         'x_version' =>$Customer->version,
-        'barcode'=> $Customer->bar,
+        'x_registered'=> $Customer->registered,
         );
     
     // Product creation
-    $customer_id = $models->execute_kw($db, $uid, $password, 'res.partner', 'create',
-        array($userinfo));
+    $customer_id = $models->execute_kw($db, $uid, $password, 'res.partner', 'create',array($userinfo));
     $Customer->id = $customer_id;
     echo $customer_id;
     return $Customer;
@@ -235,19 +234,18 @@ function CreateCustomerWithUUID($Customer)
         'phone' => $Customer->phone,
         'street' => $Customer->street,
         'x_state' => $Customer->state,
-        'x_country' => $Customer->street,
-        'zip' => $Customer->street,
-        'city' => $Customer->street,
+        'x_country' => $Customer->country,
+        'zip' => $Customer->zip,
+        'city' => $Customer->city,
         'create_date' => $Customer->createDate,
         'x_UUID'=> $Customer->UUID,
         'credit'=> $Customer->credit,
         'x_version' =>$Customer->version,
-        'barcode'=> $Customer->bar,
+        'x_registered'=> $Customer->registered,
         );
     
     // Product creation
-    $customer_id = $models->execute_kw($db, $uid, $password, 'res.partner', 'create',
-        array($userinfo));
+    $customer_id = $models->execute_kw($db, $uid, $password, 'res.partner', 'create',array($userinfo));
     $Customer->id = $customer_id;
     return $Customer;
    
@@ -436,7 +434,7 @@ function UpdateCustomerUUID($id,$UUID,$version)
     $models->execute_kw($db, $uid, $password, 'res.partner', 'write',
         array(array($id),   array('x_UUID'=>$UUID
                                  ,'x_version'=>$version
-                                 ,'barcode'=>1)));
+                                 ,'x_registered'=> TRUE)));
 }
 function deadtest()
 {

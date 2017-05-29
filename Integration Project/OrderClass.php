@@ -4,7 +4,9 @@
 
 class Order
 {
-
+    public $UUID;
+    public $version;
+    public $ordername;
     public $id;
     public $name;
     public $customerID;
@@ -12,10 +14,11 @@ class Order
     public $productIDs;
     public $total;
  
-    public function Order($id ,$name,$customerID,$total,$createdate,$productids)
+    public function Order($id ,$ordername,$name,$customerID,$total,$createdate,$productids)
 
     {
         $this->id = $id;
+        $this->ordername = $ordername;
         $this->name = $name;
         $this->total = $total;
         $this->customerID = $customerID;

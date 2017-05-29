@@ -17,7 +17,7 @@ function sendCRM($Customer)
   
     global $connection;
     global $channel;
-    
+     $channel->queue_declare('CRMQueue', true, false, false, false);
     $arrayCred = array( 'login' => "admin",
                         'password' => "ekahov3");//$response = array();
     
@@ -33,6 +33,7 @@ function sendCRM($Customer)
         "zip" => $Customer->zip,
         "state"=> $Customer->state,
         "country" => $Customer->country,
+        "present" => $Customer->registered,
         "breakfast" => NULL,
         "cable" => NULL,
         "fraude" => NULL
@@ -47,7 +48,7 @@ function sendCRM($Customer)
         'Body' => $arrayBody);
       /*
     $msg = new AMQPMessage(json_encode($JSON));
-    $channel->basic_publish($msg, '', 'Kassa');
+    $channel->basic_publish($msg, '', 'CRMQueue');
 */
 
 }
@@ -56,7 +57,7 @@ function sendCreateUserCRM($Customer)
   
     global $connection;
     global $channel;
-    
+    $channel->queue_declare('CRMQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",
                         'password' => md5("S2DnPgVM"));//$response = array();
     
@@ -72,6 +73,7 @@ function sendCreateUserCRM($Customer)
         "zip" => $Customer->zip,
         "state"=> $Customer->state,
         "country" => $Customer->country,
+        "present" => $Customer->registered,
         "breakfast" => NULL,
         "cable" => NULL,
         "fraude" => NULL
@@ -95,7 +97,7 @@ function sendMONITORINGLog($Customer)
 
     global $connection;
     global $channel;
-   
+    $channel->queue_declare('MonitoringLogQueue', true, false, false, false);
     $arrayCred = array( 'login' => "admin",
                         'password' => "ekahov3");//$response = array();
     
@@ -111,6 +113,7 @@ function sendMONITORINGLog($Customer)
         "zip" => $Customer->zip,
         "state"=> $Customer->state,
         "country" => $Customer->country,
+        "present" => $Customer->registered,
         "breakfast" => NULL,
         "cable" => NULL,
         "fraude" => NULL
@@ -129,7 +132,7 @@ function sendMONITORINGLog($Customer)
 
 
 }
-function sendMONITORINGOrders($body)
+function sendMONITORINGOrders($order ,$detaillines)
 {
    
     global $connection;
@@ -138,7 +141,12 @@ function sendMONITORINGOrders($body)
     $arrayCred = array( 'login' => "kassa",
                         'password' => md5("S2DnPgVM"));//$response = array();
     
-    
+    $arrayBody =array(
+            "uuid" => $order->UUID,
+            "version" =>$order->version,
+            "name" =>(string)$order->name,
+            "productlines"=>$detaillines
+            );
     $JSON = array(
         "Type" => "Request",
         "Method" => "POST",
@@ -146,9 +154,10 @@ function sendMONITORINGOrders($body)
         "Receiver" => "MON",
         "ObjectType" => "ORD",
         'Credentials' => $arrayCred, 
-        'Body' => $body);
+        'Body' => $arrayBody);
     
     $msg = new AMQPMessage(json_encode($JSON));
+    
     $channel->basic_publish($msg, '', 'MonitoringLogQueue');
 
 

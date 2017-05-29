@@ -19,7 +19,7 @@ class User
     public $state;
     public $zip;
     
-    public $bar;
+    public $registered;
 
    
 

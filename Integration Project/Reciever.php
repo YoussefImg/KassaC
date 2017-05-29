@@ -9,7 +9,7 @@ $connection = new AMQPStreamConnection('10.3.51.32', 5672, 'kassa', 'Student1');
 
 
 $channel = $connection->channel();
-$channel->queue_declare('KassaQueue', false, false, false, false);
+$channel->queue_declare('KassaQueue', true, false, false, false);
 
 echo ' [*] Waiting for messages. To exit press CTRL+C', "\n";
 
@@ -36,16 +36,16 @@ $callback = function($msg)
                 $user->credit = 0;
                 if($json["Sender"] == "FRE")
                 {
-                    $user->bar = 0;
+                    $user->registered = FALSE;
                 } 
                 else
                 {
-                    $user->bar = 1;
+                    $user->registered = TRUE;
                 }
                 if(!isset($json["Body"]["id"]) || !isset($json["Body"]["uuid"]))
                 {
 
-                        echo 'no id';
+                       
                         $user = CreateCustomerWithoutUUID($user);
                         /*
                         if($user->id > 0)
@@ -58,7 +58,7 @@ $callback = function($msg)
                 }
                 else
                 {
-                       echo"id";
+                       
                         if(!isset($json["Body"]["id"]))
                         {
                             $user->UUID = $json["Body"]["id"];
@@ -122,8 +122,8 @@ $callback = function($msg)
 
 
 //TIMERS
-$lastOrderID= 1;
-$lastCustomerID = 106;
+$lastOrderID= 7;
+$lastCustomerID = 113;
 function sendOrdersFromPointOfSale()
 {
    global $lastOrderID;
@@ -145,23 +145,24 @@ function sendOrdersFromPointOfSale()
                 UpdateCustomerCreditNegatif($response->customerID, $newcredit);
             }
             */
+            
+            $masterinfo = getMasterUUIDOrder($response->ordername);
+            $response->UUID = $masterinfo["UUID"];
+            $response->version = $masterinfo["version"];
+            UpdateOrderUUID($response->id,$response->UUID,$response->version);
             $detaillines = array();
             foreach($response->productIDs as $id)
             {
                 $detail = readOrderdetail($id);
                 
-                $detailline = array("id" => $detail[0]["id"],"price" => $detail[0]["price_unit"],"quantity" =>$detail[0]["qty"]) ;
+                $detailline = array("id" => $detail[0]["id"],"name" =>substr($detail[0]["product_id"][1], strpos($detail[0]["product_id"][1], "]") + 2),"price" => $detail[0]["price_unit"],"quantity" =>$detail[0]["qty"]) ;
                 array_push($detaillines, $detailline);
             }
             
-            $arrayBody =array(
-            "uuid" => (string)$response->id,
-            "name" =>$response->name,
-            "productlines"=>$detaillines
-            );
             
-            sendMONITORINGOrders($arrayBody);
             
+            sendMONITORINGOrders($response,$detaillines);
+            echo 'New sales order with uuid '.$response->UUID.' and customername '. $response->name .' send to monitoring';
             $lastOrderID++ ;
         }
     }while ($response != false );
@@ -181,7 +182,7 @@ function sendRegistredUsers()
         
         if (!in_array($list["id"], $RegistredIDs)) 
         {
-            array_push($RegistredIDs, $list["id"]);
+            
             /*
             $user = new User($list["id"], $list["name"], $list["email"], $list["street"],$list["x_state"],$list["city"],$list["x_country"],$list["zip"], $list["phone"]);
             $user->credit = $list["credit"];
@@ -191,11 +192,8 @@ function sendRegistredUsers()
             $user->bar = $list["barcode"];
             */
             sendMONITORINGRegistred($list["x_UUID"]);
+            array_push($RegistredIDs, $list["id"]);
             
-            //SEND TO MONITORING USER IS THERE
-            // REG
-            // UUID
-            // TIME TIMESTAMP
         }   
         
         
@@ -242,16 +240,18 @@ function sendNewCustomers()
 /**/
  //readSavedInfos();
  //read the saved info so you dont have to reinit them
+
 while(true)
 {
     
     sendOrdersFromPointOfSale();
-    sleep(30);
+    sleep(5);
 }
-
+/*
+*/
 
 /*
-$channel->basic_consume('KassaQueue', '', false, true, false, false, $callback);
+$channel->basic_consume('KassaQueue', '', true, true, false, false, $callback);
 while(count($channel->callbacks)) {
     $channel->wait();
 }
