@@ -66,7 +66,7 @@ function sendCreateUserCRM($Customer)
         "version" =>$Customer->version,
         "name" => strtok($Customer->name, '_'),
         "surname" => substr($Customer->name, strpos($Customer->name, "_") + 1),
-        "tel" => $Customer->phone,
+        "tel" => (string)$Customer->phone,
         "email" => $Customer->email,
         "street" => $Customer->street,
         "city" => $Customer->city,
@@ -92,7 +92,7 @@ function sendCreateUserCRM($Customer)
 
 
 }
-function sendMONITORINGLog($Customer)
+function sendCreateUserMONITORING($Customer)
 {
 
     global $connection;
@@ -132,6 +132,46 @@ function sendMONITORINGLog($Customer)
 
 
 }
+function sendCreateUserFRONTEND($Customer)
+{
+
+    global $connection;
+    global $channel;
+    $channel->queue_declare('FrontendQueue', true, false, false, false);
+    $arrayCred = array( 'login' => "admin",
+                        'password' => "ekahov3");//$response = array();
+    
+    $arrayBody =array(
+        "uuid" => $Customer->UUID,
+        "version" =>$Customer->version,
+        "name" => strtok($Customer->name, '_'),
+        "surname" => substr($Customer->name, strpos($Customer->name, "_") + 1),
+        "tel" => $Customer->phone,
+        "email" => $Customer->email,
+        "street" => $Customer->street,
+        "city" => $Customer->city,
+        "zip" => $Customer->zip,
+        "state"=> $Customer->state,
+        "country" => $Customer->country,
+        "present" => $Customer->registered,
+        "breakfast" => NULL,
+        "cable" => NULL,
+        "fraude" => NULL
+    );
+    $JSON = array(
+        "Type" => "Request",
+        "Method" => "POST",
+        "Sender" => "KAS",
+        "Receiver" => "MON",
+        "ObjectType" => "VST",
+        'Credentials' => $arrayCred, 
+        'Body' => $arrayBody);
+    
+    $msg = new AMQPMessage(json_encode($JSON));
+    $channel->basic_publish($msg, '', 'FrontendQueue');
+
+
+}
 function sendMONITORINGOrders($order ,$detaillines)
 {
    
@@ -167,7 +207,7 @@ function sendMONITORINGRegistred($uuid)
 
     global $connection;
     global $channel;
-   
+   $channel->queue_declare('MonitoringLogQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",
                         'password' => md5("S2DnPgVM"));//$response = array();
     
@@ -178,7 +218,7 @@ function sendMONITORINGRegistred($uuid)
     );
     $JSON = array(
         "Type" => "Request",
-        "Method" => "POST",
+        "Method" => "PUT",
         "Sender" => "KAS",
         "Receiver" => "MON",
         "ObjectType" => "REG",
@@ -187,6 +227,86 @@ function sendMONITORINGRegistred($uuid)
     
     $msg = new AMQPMessage(json_encode($JSON));
     $channel->basic_publish($msg, '', 'MonitoringLogQueue');
+
+
+}
+function sendCRMRegistred($Customer)
+{
+
+    global $connection;
+    global $channel;
+   $channel->queue_declare('CRMQueue', true, false, false, false);
+    $arrayCred = array( 'login' => "kassa",
+                        'password' => md5("S2DnPgVM"));//$response = array();
+    
+     $arrayBody =array(
+        "uuid" => $Customer->UUID,
+        "version" =>$Customer->version,
+        "name" => strtok($Customer->name, '_'),
+        "surname" => substr($Customer->name, strpos($Customer->name, "_") + 1),
+        "tel" => $Customer->phone,
+        "email" => $Customer->email,
+        "street" => $Customer->street,
+        "city" => $Customer->city,
+        "zip" => $Customer->zip,
+        "state"=> $Customer->state,
+        "country" => $Customer->country,
+        "present" => $Customer->registered,
+        "breakfast" => NULL,
+        "cable" => NULL,
+        "fraude" => NULL
+    );
+    $JSON = array(
+        "Type" => "Request",
+        "Method" => "PUT",
+        "Sender" => "KAS",
+        "Receiver" => "MON",
+        "ObjectType" => "VST",
+        'Credentials' => $arrayCred, 
+        'Body' => $arrayBody);
+    
+    $msg = new AMQPMessage(json_encode($JSON));
+    $channel->basic_publish($msg, '', 'CRMQueue');
+
+
+}
+function sendFrontendRegistred($Customer)
+{
+
+    global $connection;
+    global $channel;
+   $channel->queue_declare('FrontendQueue', true, false, false, false);
+    $arrayCred = array( 'login' => "kassa",
+                        'password' => md5("S2DnPgVM"));//$response = array();
+    
+      $arrayBody =array(
+        "uuid" => $Customer->UUID,
+        "version" =>$Customer->version,
+        "name" => strtok($Customer->name, '_'),
+        "surname" => substr($Customer->name, strpos($Customer->name, "_") + 1),
+        "tel" => $Customer->phone,
+        "email" => $Customer->email,
+        "street" => $Customer->street,
+        "city" => $Customer->city,
+        "zip" => $Customer->zip,
+        "state"=> $Customer->state,
+        "country" => $Customer->country,
+        "present" => $Customer->registered,
+        "breakfast" => NULL,
+        "cable" => NULL,
+        "fraude" => NULL
+    );
+    $JSON = array(
+        "Type" => "Request",
+        "Method" => "PUT",
+        "Sender" => "KAS",
+        "Receiver" => "MON",
+        "ObjectType" => "VST",
+        'Credentials' => $arrayCred, 
+        'Body' => $arrayBody);
+    
+    $msg = new AMQPMessage(json_encode($JSON));
+    $channel->basic_publish($msg, '', 'FrontendQueue');
 
 
 }

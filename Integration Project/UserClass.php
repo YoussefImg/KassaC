@@ -12,7 +12,7 @@ class User
     public $email;
     public $phone;
     public $createDate;
-    
+    public $city;
     public $credit;
     public $street;
     public $country;
@@ -64,23 +64,26 @@ class User
     public function toString()
     {
         echo '
-            ID : '.$this->id.'<br>
-            UUID : '.$this->UUID.'<br>
-            Name : '.$this->name.'<br>
-            Email : '.$this->email.'<br>
-            Street : '. $this->street .'<br>
-            City : '. $this->city .'<br>
-            State : '. $this->state .'<br>
-            Country : '. $this->country .'<br>
-            Zip : '. $this->zip .'<br>
-            Phone : '. $this->phone.'<br>
-            Createdate : '.$this->createDate.'<br>
-            Credit : '.$this->credit.'<br>
+            ID : '.$this->id.'
+            UUID : '.$this->UUID.'
+            Version : '.$this->version.'
+            Name : '.$this->name.'
+            Email : '.$this->email.'
+            Street : '. $this->street .'
+            City : '. $this->city .'
+            State : '. $this->state .'
+            Country : '. $this->country .'
+            Zip : '. $this->zip .'
+            Phone : '. $this->phone.'
+            Createdate : '.$this->createDate.'
+            Credit : '.$this->credit.'
+            Registred : '.$this->registered.'
             
             
             
             
             ';
+          
     }
 }
     
