@@ -23,10 +23,12 @@ function sendOrdersFromPointOfSale()
             
             $total = $response->total;
             $credit = getCustomerCreditByID($response->customerID);
+            
             if($credit - $total < 0)
             {
                 //Erroor , customer have not enough money
                 UpdateCustomerAcceptedOrder($response->customerID,FALSE);
+                echo ' not enough money';
             }
             else
             {
@@ -214,9 +216,9 @@ function convertToArray($toarray)
 while(true)
 {
     
-    //sendOrdersFromPointOfSale();
+    sendOrdersFromPointOfSale();
     //sendRegistredUsers();
-    checkUpdatedCredit();
+    //checkUpdatedCredit();
     //sendNewCustomers();
     
     sleep(5);

@@ -7,7 +7,7 @@ use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
 $connection = new AMQPStreamConnection('10.3.51.32', 5672, 'kassa', 'Student1');
-$channel = $connection->channel();
+
 
 
 
@@ -15,9 +15,9 @@ $channel = $connection->channel();
 function sendCRM($Customer)
 {
   
-    global $connection;
+    $connection = new AMQPStreamConnection('10.3.51.32', 5672, 'kassa', 'Student1');
     $channel = $connection->channel();
-     $channel->queue_declare('CRMQueue', true, false, false, false);
+    $channel->queue_declare('CRMQueue', true, false, false, false);
     $arrayCred = array( 'login' => "admin",
                         'password' => "ekahov3");//$response = array();
     
@@ -57,7 +57,7 @@ function sendCRM($Customer)
 function sendCreateUserCRM($Customer)
 {
   
-    global $connection;
+    $connection = new AMQPStreamConnection('10.3.51.32', 5672, 'kassa', 'Student1');
     $channel = $connection->channel();
     $channel->queue_declare('CRMQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",
@@ -98,7 +98,7 @@ function sendCreateUserCRM($Customer)
 function sendCreateUserMONITORING($Customer)
 {
 
-    global $connection;
+    $connection = new AMQPStreamConnection('10.3.51.32', 5672, 'kassa', 'Student1');
     $channel = $connection->channel();
     $channel->queue_declare('MonitoringLogQueue', true, false, false, false);
     $arrayCred = array( 'login' => "admin",
@@ -139,7 +139,7 @@ function sendCreateUserMONITORING($Customer)
 function sendCreateUserFRONTEND($Customer)
 {
 
-    global $connection;
+    $connection = new AMQPStreamConnection('10.3.51.32', 5672, 'kassa', 'Student1');
     $channel = $connection->channel();
     $channel->queue_declare('FrontendQueue', true, false, false, false);
     $arrayCred = array( 'login' => "admin",
@@ -180,7 +180,7 @@ function sendCreateUserFRONTEND($Customer)
 function sendMONITORINGOrders($order ,$detaillines)
 {
    
-    global $connection;
+    $connection = new AMQPStreamConnection('10.3.51.32', 5672, 'kassa', 'Student1');
     $channel = $connection->channel();
     $channel->queue_declare('MonitoringLogQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",
@@ -211,7 +211,7 @@ function sendMONITORINGOrders($order ,$detaillines)
 function sendMONITORINGCredit($uuid,$name,$newcred,$amountadd)
 {
    
-    global $connection;
+    $connection = new AMQPStreamConnection('10.3.51.32', 5672, 'kassa', 'Student1');
     $channel = $connection->channel();
     $channel->queue_declare('MonitoringLogQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",
@@ -242,9 +242,9 @@ function sendMONITORINGCredit($uuid,$name,$newcred,$amountadd)
 function sendMONITORINGCheckSystem($uuid,$timestampsnd,$version, $var)
 {
    
-    global $connection;
+    $connection = new AMQPStreamConnection('10.3.51.32', 5672, 'kassa', 'Student1');
     $channel = $connection->channel();
-    $channel->queue_declare('MonitoringLogQueue', true, false, false, false);
+    $channel->queue_declare('HeartBeatQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",
                         'password' => md5("TLs3j9"));//$response = array();
     
@@ -257,7 +257,7 @@ function sendMONITORINGCheckSystem($uuid,$timestampsnd,$version, $var)
             "var"=>$var*$var
             );
     $JSON = array(
-        "Type" => "Request",
+        "Type" => "Answer",
         "Method" => "POST",
         "Sender" => "KAS",
         "Receiver" => "MON",
@@ -267,7 +267,7 @@ function sendMONITORINGCheckSystem($uuid,$timestampsnd,$version, $var)
     
     $msg = new AMQPMessage(json_encode($JSON));
     
-    $channel->basic_publish($msg, '', 'MonitoringLogQueue');
+    $channel->basic_publish($msg, '', 'HeartBeatQueue');
     $channel->close();
     $connection->close();
 
@@ -275,7 +275,7 @@ function sendMONITORINGCheckSystem($uuid,$timestampsnd,$version, $var)
 function sendMONITORINGRegistred($uuid)
 {
 
-    global $connection;
+    $connection = new AMQPStreamConnection('10.3.51.32', 5672, 'kassa', 'Student1');
     $channel = $connection->channel();
    $channel->queue_declare('MonitoringLogQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",
@@ -304,7 +304,7 @@ function sendMONITORINGRegistred($uuid)
 function sendCRMRegistred($Customer)
 {
 
-    global $connection;
+    $connection = new AMQPStreamConnection('10.3.51.32', 5672, 'kassa', 'Student1');
     $channel = $connection->channel();
    $channel->queue_declare('CRMQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",
@@ -345,7 +345,7 @@ function sendCRMRegistred($Customer)
 function sendFrontendRegistred($Customer)
 {
 
-    global $connection;
+    $connection = new AMQPStreamConnection('10.3.51.32', 5672, 'kassa', 'Student1');
     $channel = $connection->channel();
     $channel->queue_declare('FrontendQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",

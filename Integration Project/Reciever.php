@@ -18,18 +18,30 @@ $callback = function($msg)
     $json = json_decode($msg->body,true);
     if($json["Receiver"] == "KAS")
     {
-        $name = $json["Body"]["name"];
-        $name .= '_'.$json["Body"]["surname"];
-        $email =  $json["Body"]["email"];
-        $street =  $json["Body"]["street"];
-        $phone = $json["Body"]["tel"];
-        $state = $json["Body"]["state"];
-        $city = $json["Body"]["city"];
-        $country = $json["Body"]["country"];
-        $zip = $json["Body"]["zip"];
-        
-        if($json["Method"] == "POST")
+      
+       if($json["Type"] == "HBT")
         {
+            $uuid = $json["Body"]["uuid"];
+            $timestampsnd = $json["Body"]["timestampsnd"];
+            $version = $json["Body"]["version"];
+            $var = $json["Body"]["var"];
+            
+            sendMONITORINGCheckSystem($uuid,$timestampsnd,$version, $var);
+            echo 'Check system done
+            ';
+        }
+        elseif($json["Method"] == "POST")
+        {
+            $name = $json["Body"]["name"];
+            $name .= '_'.$json["Body"]["surname"];
+            $email =  $json["Body"]["email"];
+            $street =  $json["Body"]["street"];
+            $phone = $json["Body"]["tel"];
+            $state = $json["Body"]["state"];
+            $city = $json["Body"]["city"];
+            $country = $json["Body"]["country"];
+            $zip = $json["Body"]["zip"];
+        
             if (readCustomerByEmail($email) == NULL)
             {
                 $user = new User(  null,$name,$email,$street,$state,$city,$country,$zip,$phone);
@@ -93,7 +105,7 @@ $callback = function($msg)
             }
             
         }
-        if($json["Method"] == "PUT")
+        elseif($json["Method"] == "PUT")
         {
             
             $user = new User(  null,$name,$email,$street,$state,$city,$country,$zip,$phone);
@@ -106,7 +118,7 @@ $callback = function($msg)
             $user->toString();
 
         }
-        if($json["Method"] == "GET")
+        elseif($json["Method"] == "GET")
         {
             if($json["ObjectType"] == "VST")
             {
@@ -114,23 +126,13 @@ $callback = function($msg)
             }
 
         }
-        if($json["Method"] == "DELETE")
+        elseif($json["Method"] == "DELETE")
         {
             $UUID = $json["Body"]["uuid"];
             SetInactiveCustomer($UUID);
             echo "Customer with uuid " . $user->UUID . " set inactif(Blocked) ";
         }
-        if($json["ObjectType"] == "HBT")
-        {
-            $uuid = $json["Body"]["UUID"];
-            $timestampsnd = $json["Body"]["timestampsnd"];
-            $version = $json["Body"]["version"];
-            $var = $json["Body"]["var"];
-            
-            sendMONITORINGCheckSystem($uuid,$timestampsnd,$version, $var);
-            echo 'Check system done
-            ';
-        }
+        
     }
     else
     {
