@@ -18,18 +18,30 @@ $callback = function($msg)
     $json = json_decode($msg->body,true);
     if($json["Receiver"] == "KAS")
     {
-        $name = $json["Body"]["name"];
-        $name .= '_'.$json["Body"]["surname"];
-        $email =  $json["Body"]["email"];
-        $street =  $json["Body"]["street"];
-        $phone = $json["Body"]["tel"];
-        $state = $json["Body"]["state"];
-        $city = $json["Body"]["city"];
-        $country = $json["Body"]["country"];
-        $zip = $json["Body"]["zip"];
-        
-        if($json["Method"] == "POST")
+      
+       if($json["Type"] == "HBT")
         {
+            $uuid = $json["Body"]["uuid"];
+            $timestampsnd = $json["Body"]["timestampsnd"];
+            $version = $json["Body"]["version"];
+            $var = $json["Body"]["var"];
+            
+            sendMONITORINGCheckSystem($uuid,$timestampsnd,$version, $var);
+            echo 'Check system done
+            ';
+        }
+        elseif($json["Method"] == "POST")
+        {
+            $name = $json["Body"]["name"];
+            $name .= '_'.$json["Body"]["surname"];
+            $email =  $json["Body"]["email"];
+            $street =  $json["Body"]["street"];
+            $phone = $json["Body"]["tel"];
+            $state = $json["Body"]["state"];
+            $city = $json["Body"]["city"];
+            $country = $json["Body"]["country"];
+            $zip = $json["Body"]["zip"];
+        
             if (readCustomerByEmail($email) == NULL)
             {
                 $user = new User(  null,$name,$email,$street,$state,$city,$country,$zip,$phone);
@@ -93,7 +105,7 @@ $callback = function($msg)
             }
             
         }
-        if($json["Method"] == "PUT")
+        elseif($json["Method"] == "PUT")
         {
             
             $user = new User(  null,$name,$email,$street,$state,$city,$country,$zip,$phone);
@@ -106,7 +118,7 @@ $callback = function($msg)
             $user->toString();
 
         }
-        if($json["Method"] == "GET")
+        elseif($json["Method"] == "GET")
         {
             if($json["ObjectType"] == "VST")
             {
@@ -114,12 +126,13 @@ $callback = function($msg)
             }
 
         }
-        if($json["Method"] == "DELETE")
+        elseif($json["Method"] == "DELETE")
         {
             $UUID = $json["Body"]["uuid"];
             SetInactiveCustomer($UUID);
             echo "Customer with uuid " . $user->UUID . " set inactif(Blocked) ";
         }
+        
     }
     else
     {
@@ -132,198 +145,6 @@ $callback = function($msg)
 
 
 
-
-//TIMERS
-$lastOrderID= 9;
-$lastCustomerID = 124;
-function sendOrdersFromPointOfSale()
-{
-   global $lastOrderID;
-    do
-    {
-       $response =  readOrder($lastOrderID);
-        if($response != false)
-        {
-            
-            $total = $response->total;
-            $credit = getCustomerCreditByID($response->customerID);
-            if($credit - $total < 0)
-            {
-                //Erroor , customer have not enough money
-                UpdateCustomerAcceptedOrder($response->customerID,FALSE);
-            }
-            else
-            {
-                // Order is accepted
-                $newcredit = $credit - $total;
-                UpdateCustomerCreditNegatif($response->customerID, $newcredit);
-                UpdateCustomerAcceptedOrder($response->customerID,TRUE);
-                
-                $masterinfo = getMasterUUIDOrder($response->ordername);
-                $response->UUID = $masterinfo["UUID"];
-                $response->version = $masterinfo["version"];
-                UpdateOrderUUID($response->id,$response->UUID,$response->version);
-                $detaillines = array();
-                foreach($response->productIDs as $id)
-                {
-                    $detail = readOrderdetail($id);
-
-                    $detailline = array("id" => $detail[0]["id"],"name" =>substr($detail[0]["product_id"][1], strpos($detail[0]["product_id"][1], "]") + 2),"price" => $detail[0]["price_unit"],"quantity" =>$detail[0]["qty"]) ;
-                    array_push($detaillines, $detailline);
-                }
-
-                sendMONITORINGOrders($response,$detaillines);
-                echo "Order with uuid ". $response->UUID . " created  :
-                Customer name : ". $response->name."
-                Total : ".$response->total."
-                ______________________________________________________________";
-                
-            }
-             /**/
-            
-            
-            //echo 'New sales order with uuid '.$response->UUID.' and customername '. $response->name .' send to monitoring';
-            $lastOrderID++ ;
-        }
-    }while ($response != false );
-    
-    
-   
-}
-$RegistredIDs = array();
-function sendRegistredUsers()
-{
-   global $RegistredIDs;
-    
-    $response =  readRegistredCustomers();
-   
-    foreach($response as  $list)
-    {
-       
-        
-        if (!in_array($list["id"], $RegistredIDs)) 
-        {
-            
-            
-            $user = new User($list["id"], $list["name"], $list["email"], $list["street"],$list["x_state"],$list["city"],$list["x_country"],$list["zip"], $list["phone"]);
-            $user->credit = $list["x_credit"];
-            $user->version = $list["x_version"];
-            $user->UUID = $list["x_UUID"];
-            $user->createDate = $list["create_date"];
-            $user->registered = $list["x_registered"];
-            
-            echo "User with uuid ". $list["x_UUID"] . " is Regsitred
-            ";
-            sendMONITORINGRegistred($list["x_UUID"]);
-            sendCRMRegistred( $user);
-            sendFrontendRegistred($user);
-            array_push($RegistredIDs, $list["id"]);
-            
-        }   
-        
-        
-        
-    }
-    
-    
-   
-}
-function sendNewCustomers()
-{
-   global $lastCustomerID;
-    do
-    {
-        
-       $response =  readCustomerById($lastCustomerID);
-     
-        if($response != false)
-        {
-            
-           
-            if($response->UUID == false)
-            {
-                /**/
-                $master = getMasterUUID($response->email);
-                $UUID = $master["UUID"];
-                $version = $master["version"];
-                UpdateCustomerUUID($lastCustomerID, $UUID,$version);
-                $response->UUID = $UUID;
-                $response->version = $version;
-                $response->toString();
-                sendCreateUserCRM($response);
-                sendCreateUserMONITORING($response);
-                sendCreateUserFRONTEND($response);
-                
-                 echo "Customer with uuid ". $response->UUID . " created in odoo gui with paramaters :
-                 ______________________________________________________________";
-                $response->toString();
-
-            }
-           
-           $lastCustomerID++; 
-        }
-    }while ($response != false );
-    
-    
-   
-}
-$credits = array();
-function checkUpdatedCredit()
-{
-   global $lastCustomerID;
-    do
-    {
-        
-       $response =  readCustomers();
-     
-        if($response != false)
-        {
-            
-           
-            if($response->UUID == false)
-            {
-                /**/
-                $master = getMasterUUID($response->email);
-                $UUID = $master["UUID"];
-                $version = $master["version"];
-                UpdateCustomerUUID($lastCustomerID, $UUID,$version);
-                $response->UUID = $UUID;
-                $response->version = $version;
-                $response->toString();
-                sendCreateUserCRM($response);
-                sendCreateUserMONITORING($response);
-                sendCreateUserFRONTEND($response);
-                
-                 echo "Customer with uuid ". $response->UUID . " created in odoo gui with paramaters :
-                 ______________________________________________________________";
-                $response->toString();
-
-            }
-           
-           $lastCustomerID++; 
-        }
-    }while ($response != false );
-    
-    
-   
-}
-
-/**/
- //readSavedInfos();
- //read the saved info so you dont have to reinit them
-/**/
-while(true)
-{
-    
-    //sendOrdersFromPointOfSale();
-    sendRegistredUsers();
-    //sendNewCustomers();
-    sleep(5);
-}
-
-
-
-
 /*
 
 $user = readCustomerById(120);
@@ -331,47 +152,15 @@ UpdateCustomerCreditPositif($user->UUID,500000);
 $user = readCustomerById(120);
 var_dump($user );
 */
-/*
+
 $channel->basic_consume('KassaQueue', '', true, true, false, false, $callback);
-while(count($channel->callbacks)) {
+while(count($channel->callbacks)) 
+{
     $channel->wait();
 }
 
-*/
-$relative_path = 'php/testit/info.txt';
-function readSavedInfos()
-{
-    global $relative_path;
-    global $lastCustomerID;
-    global $lastOrderID;
-    global $RegistredIDs;
-    
-    $myfile = fopen($relative_path, "r") or die("Unable to open file!");
-    $info = fread($myfile,filesize($relative_path));
-    fclose($myfile);
-    
-    $jsoninfo = json_decode($info);
-    $lastCustomerID = $jsoninfo["lastCustomerID"];
-    $lastOrderID = $jsoninfo["lastOrderID"];
-    $RegistredIDs = $jsoninfo["RegistredIDs"];
-}
-function writeSavedInfos()
-{
-    global $relative_path;
-    global $lastCustomerID;
-    global $lastOrderID;
-    global $RegistredIDs;
-    
-    $myfile = fopen($relative_path, "w") or die("Unable to open file!");
-    $info = array(  "lastCustomerID" => $lastCustomerID,
-                    "lastOrderID" => $lastOrderID,
-                    "RegistredIDs" => $RegistredIDs
-    );
+/**/
 
-    fwrite($myfile, json_encode($info));
-    fclose($myfile);
-
-}
 ?>
 
 
