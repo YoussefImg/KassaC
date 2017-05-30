@@ -16,7 +16,7 @@ function sendCRM($Customer)
 {
   
     global $connection;
-    global $channel;
+    $channel = $connection->channel();
      $channel->queue_declare('CRMQueue', true, false, false, false);
     $arrayCred = array( 'login' => "admin",
                         'password' => "ekahov3");//$response = array();
@@ -49,6 +49,8 @@ function sendCRM($Customer)
       /*
     $msg = new AMQPMessage(json_encode($JSON));
     $channel->basic_publish($msg, '', 'CRMQueue');
+        $channel->close();
+    $connection->close();
 */
 
 }
@@ -56,7 +58,7 @@ function sendCreateUserCRM($Customer)
 {
   
     global $connection;
-    global $channel;
+    $channel = $connection->channel();
     $channel->queue_declare('CRMQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",
                         'password' => md5("S2DnPgVM"));//$response = array();
@@ -89,14 +91,15 @@ function sendCreateUserCRM($Customer)
   
     $msg = new AMQPMessage(json_encode($JSON));
     $channel->basic_publish($msg, '', 'CRMQueue');
-
+    $channel->close();
+    $connection->close();
 
 }
 function sendCreateUserMONITORING($Customer)
 {
 
     global $connection;
-    global $channel;
+    $channel = $connection->channel();
     $channel->queue_declare('MonitoringLogQueue', true, false, false, false);
     $arrayCred = array( 'login' => "admin",
                         'password' => "ekahov3");//$response = array();
@@ -129,14 +132,15 @@ function sendCreateUserMONITORING($Customer)
     
     $msg = new AMQPMessage(json_encode($JSON));
     $channel->basic_publish($msg, '', 'MonitoringLogQueue');
-
+    $channel->close();
+    $connection->close();
 
 }
 function sendCreateUserFRONTEND($Customer)
 {
 
     global $connection;
-    global $channel;
+    $channel = $connection->channel();
     $channel->queue_declare('FrontendQueue', true, false, false, false);
     $arrayCred = array( 'login' => "admin",
                         'password' => "ekahov3");//$response = array();
@@ -169,14 +173,15 @@ function sendCreateUserFRONTEND($Customer)
     
     $msg = new AMQPMessage(json_encode($JSON));
     $channel->basic_publish($msg, '', 'FrontendQueue');
-
+    $channel->close();
+    $connection->close();
 
 }
 function sendMONITORINGOrders($order ,$detaillines)
 {
    
     global $connection;
-    global $channel;
+    $channel = $connection->channel();
     $channel->queue_declare('MonitoringLogQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",
                         'password' => md5("S2DnPgVM"));//$response = array();
@@ -199,14 +204,79 @@ function sendMONITORINGOrders($order ,$detaillines)
     $msg = new AMQPMessage(json_encode($JSON));
     
     $channel->basic_publish($msg, '', 'MonitoringLogQueue');
+    $channel->close();
+    $connection->close();
 
+}
+function sendMONITORINGCredit($uuid,$name,$newcred,$amountadd)
+{
+   
+    global $connection;
+    $channel = $connection->channel();
+    $channel->queue_declare('MonitoringLogQueue', true, false, false, false);
+    $arrayCred = array( 'login' => "kassa",
+                        'password' => md5("S2DnPgVM"));//$response = array();
+    
+    $arrayBody =array(
+            "uuid" => $uuid,
+            "name" =>$name,
+            "newcredit" =>$newcred,
+            "amount"=>$amountadd
+            );
+    $JSON = array(
+        "Type" => "Request",
+        "Method" => "POST",
+        "Sender" => "KAS",
+        "Receiver" => "MON",
+        "ObjectType" => "TRS",
+        'Credentials' => $arrayCred, 
+        'Body' => $arrayBody);
+    
+    $msg = new AMQPMessage(json_encode($JSON));
+    
+    $channel->basic_publish($msg, '', 'MonitoringLogQueue');
+    $channel->close();
+    $connection->close();
+
+}
+function sendMONITORINGCheckSystem($uuid,$timestampsnd,$version, $var)
+{
+   
+    global $connection;
+    $channel = $connection->channel();
+    $channel->queue_declare('MonitoringLogQueue', true, false, false, false);
+    $arrayCred = array( 'login' => "kassa",
+                        'password' => md5("TLs3j9"));//$response = array();
+    
+    $date = new DateTime();
+    $arrayBody =array(
+            "UUID" => $uuid,
+            "version" => $version,
+            "timestampsnd" =>$timestampsnd,
+            "timestampres" =>$date->getTimestamp(),
+            "var"=>$var*$var
+            );
+    $JSON = array(
+        "Type" => "Request",
+        "Method" => "POST",
+        "Sender" => "KAS",
+        "Receiver" => "MON",
+        "ObjectType" => "HBT",
+        'Credentials' => $arrayCred, 
+        'Body' => $arrayBody);
+    
+    $msg = new AMQPMessage(json_encode($JSON));
+    
+    $channel->basic_publish($msg, '', 'MonitoringLogQueue');
+    $channel->close();
+    $connection->close();
 
 }
 function sendMONITORINGRegistred($uuid)
 {
 
     global $connection;
-    global $channel;
+    $channel = $connection->channel();
    $channel->queue_declare('MonitoringLogQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",
                         'password' => md5("S2DnPgVM"));//$response = array();
@@ -227,14 +297,15 @@ function sendMONITORINGRegistred($uuid)
     
     $msg = new AMQPMessage(json_encode($JSON));
     $channel->basic_publish($msg, '', 'MonitoringLogQueue');
-
+    $channel->close();
+    $connection->close();
 
 }
 function sendCRMRegistred($Customer)
 {
 
     global $connection;
-    global $channel;
+    $channel = $connection->channel();
    $channel->queue_declare('CRMQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",
                         'password' => md5("S2DnPgVM"));//$response = array();
@@ -267,15 +338,16 @@ function sendCRMRegistred($Customer)
     
     $msg = new AMQPMessage(json_encode($JSON));
     $channel->basic_publish($msg, '', 'CRMQueue');
-
+    $channel->close();
+    $connection->close();
 
 }
 function sendFrontendRegistred($Customer)
 {
 
     global $connection;
-    global $channel;
-   $channel->queue_declare('FrontendQueue', true, false, false, false);
+    $channel = $connection->channel();
+    $channel->queue_declare('FrontendQueue', true, false, false, false);
     $arrayCred = array( 'login' => "kassa",
                         'password' => md5("S2DnPgVM"));//$response = array();
     
@@ -307,14 +379,15 @@ function sendFrontendRegistred($Customer)
     
     $msg = new AMQPMessage(json_encode($JSON));
     $channel->basic_publish($msg, '', 'FrontendQueue');
-
+    $channel->close();
+    $connection->close();
 
 }
 function sendFRONTEND($JSON)
 {
 
     global $connection;
-    global $channel;
+    $channel = $connection->channel();
 
     $msg = new AMQPMessage($JSON);
     $channel->basic_publish($msg, '', 'FRONTEND');
@@ -325,11 +398,12 @@ function sendPLANNING($JSON)
 {
 
     global $connection;
-    global $channel;
+    $channel = $connection->channel();
 
     $msg = new AMQPMessage($JSON);
     $channel->basic_publish($msg, '', '¨PLANNING');
-
+    $channel->close();
+    $connection->close();
 
 }
 
@@ -343,7 +417,7 @@ function sendPLANNING($JSON)
 function sendKassa($Customer)
 {
     global $connection;
-    global $channel;
+    $channel = $connection->channel();
     
     $arrayCred = array( 'login' => "admin",
                         'password' => "ekahov3");//$response = array();
@@ -374,7 +448,8 @@ function sendKassa($Customer)
     
     $msg = new AMQPMessage(json_encode($JSON));
     $channel->basic_publish($msg, '', 'Kassa');
-
+    $channel->close();
+    $connection->close();
 
 }
 /*
@@ -385,8 +460,7 @@ sendMONITORING($user);
    $user = new User( null, "zedtest", "update@up", "upp","upstate","upcity","upcountry",2344, 0234234);
 sendKassa($user);
 */
-$channel->close();
-$connection->close();
+
 
 ?>
 

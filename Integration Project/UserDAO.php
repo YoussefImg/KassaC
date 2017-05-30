@@ -36,10 +36,41 @@ $models = ripcord::client("$url/xmlrpc/2/object");
         $user->version = $list["x_version"];
         $user->createDate = $list["create_date"];
         $user->registered = $list["x_registered"];
+        //$user->toString();
+        
+        
+    }
+     return $records;
+}
+function readCustomersBetween($startDate, $endDate)
+{
+    global $url;
+    global $db;
+    global $username;
+    global $password;
+    global $common;
+    global $uid;
+    global $models;
+    $records = $models->execute_kw($db, $uid, $password,
+        /*Database table*/       'res.partner',
+        /*Action on table*/      'search_read',
+        array(array(array('__last_update', '<', $startDate))),
+        array('fields'=>array('id','name', 'email', 'street','phone','create_date','x_UUID','city','zip','x_state','x_country',"x_credit","x_version",'x_registered')));
+
+   foreach($records as  $list)
+    {
+       
+        $user = new User( $list["id"], $list["name"], $list["email"], $list["street"],$list["x_state"],$list["city"],$list["x_country"],$list["zip"], $list["phone"]);
+        $user->credit = $list["x_credit"];
+        $user->UUID = $list["x_UUID"];
+        $user->version = $list["x_version"];
+        $user->createDate = $list["create_date"];
+        $user->registered = $list["x_registered"];
         $user->toString();
         
         
     }
+    return $records;
 }
 function readRegistredCustomers()
 {
@@ -187,25 +218,24 @@ function CreateCustomerWithoutUUID($Customer)
     
     
     $userinfo = array(
-         'name' => $Customer->name,
+       'name' => $Customer->name,
         'email' => $Customer->email,
         'phone' => $Customer->phone,
         'street' => $Customer->street,
         'x_state' => $Customer->state,
-        'x_country' => $Customer->street,
-        'zip' => $Customer->street,
-        'x_credit' => $Customer->street,
+        'x_country' => $Customer->country,
+        'zip' => $Customer->zip,
+        'city' => $Customer->city,
         'create_date' => $Customer->createDate,
         'x_UUID'=> $Customer->UUID,
-        'credit'=> $Customer->credit,
+        'x_credit'=> $Customer->credit,
         'x_version' =>$Customer->version,
         'x_registered'=> $Customer->registered,
         );
     
-    // Product creation
+    
     $customer_id = $models->execute_kw($db, $uid, $password, 'res.partner', 'create',array($userinfo));
     $Customer->id = $customer_id;
-    echo $customer_id;
     return $Customer;
    
 }
